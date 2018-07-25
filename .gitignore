@@ -1,4 +1,5 @@
 # ignore folders used for storing the results
 results/ 
 all_results/
+temp_tests/
 
