@@ -49,22 +49,22 @@ from some_functions import ensemble_prediction, count_votes
 
 data_set_name = 'STL10' #'EMNIST'  # 'Cifar10', Cifar100, 'ImageNet64'
 
-no_epochs = 30
+no_epochs = 60
 semi_sup_iterations = 4
 epoch_skip = 15  # should be high if not using a pre-trained model
 temporal_pert_skip = 5 # if this is set to low value, it will affect the convergence
-
 pre_trained_model = False
 
 lr = 0.01
 weight_decay = 5e-4
 dropout_p = 0.4
 momentum_val= 0.9
-use_nestrov_moment = False 
+use_nestrov_moment = True 
 trn_batch_sz = 64 # int( train_dataset_size/number_of_mini_bathces)  # we need to add if statement to change this to the size of the trn, depending on test_then_trn
 tst_batch_sz = 125 # int( test_dataset_size/number_of_mini_bathces)
-seed_value = int(time.time())   ###################### default is 1
-my_sampler_size = 6000
+seed_value = 1 # int(time.time())   ###################### default is 1
+my_sampler_size = 1000
+
 
 dnn_list=['vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn',
         'resnext101_32x4d', 'resnext101_64x4d', 'nasnetalarge',   
@@ -96,7 +96,7 @@ parser.add_argument('--lr', type=float, default=lr, metavar='LR',
 parser.add_argument('--momentum', type=float, default=momentum_val, metavar='M',
                     help='SGD momentum (default: 0.9)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
-                    help='disables CUDA trainingalexnet')
+                    help='disables CUDA trainin')
 parser.add_argument('--seed', type=int, default=seed_value, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=300, metavar='N',
@@ -116,8 +116,6 @@ parser.add_argument('--weight-decay', type=float, default=weight_decay,
 parser.add_argument('--pre-trained-model', type=bool, default= pre_trained_model, 
                     metavar='W', help='input true or false (default: False)')
 
-parser.add_argument('--data-set-name', type=str, default= data_set_name, 
-                    metavar='S', help='Name of dataset used')
 
 args = parser.parse_args()
 
@@ -126,8 +124,7 @@ args.semi_sup_iterations = semi_sup_iterations
 args.temporal_pert_skip = temporal_pert_skip
 args.lr_milestones= [50, 90, 250 ]  #[20, 40, 80 ]
 
-args.use_temporal_ensemble = False
-args.temporal_ensemble_frequency_save = 1
+args.use_temporal_ensemble = False 
 args.temporal_perturbation_f = 3 # should be prime number
 args.temporal_alpha = 0
 args.model_name_attention = model_name_attention        
@@ -136,7 +133,6 @@ args.model_name_attention = model_name_attention
 higher values yield higher noise, temporal alpha will decay with epoch advance, thus, higher values 
 may indicate more training time will be needed    
 temporal_perturbation_f: The noise is added to the gradient every temporal_perturbation_f, should be prime number
-temporal_ensemble_frequency_save: When to save the classifier, 1 means at every epoch
 temporal_pert_skip: The number of epochs to skip before performing temporal perturbation, could be low if one
 uses a pre-trained model (as the convergence could be fast)
     """
@@ -386,6 +382,11 @@ def add_new_rand_labels(input_set):
                                     max(input_set.labels), size=len(input_set.labels), dtype='int') # assigning randoms labels
     return input_set
        
+
+def random_seeding(seed_value, use_cuda):
+    np.random.seed(seed_value)
+    torch.manual_seed(seed_value)    
+    if use_cuda: torch.cuda.manual_seed_all(seed_value)
     
 
 
@@ -395,10 +396,11 @@ def add_new_rand_labels(input_set):
 
 "Using random labels in the testing set, and train it, then putting back the original labels before testing"
 start_timer = time.time()
-print('Semi-Supervised Learning using... ', data_set_name)
+print('##### ----- Semi-Supervised Learning using... ', data_set_name, '-----s#####')
 print(args)
-use_cuda = not args.no_cuda and torch.cuda.is_available()
+use_cuda = not(args.no_cuda) and torch.cuda.is_available() 
 device = torch.device('cuda' if use_cuda else 'cpu')
+random_seeding(seed_value, use_cuda)
 train_set, test_set, unlabeled_set, classes, input_size = get_the_data(data_set_name) 
 train_loader, test_loader, unlabeled_loader = get_the_loaders() 
 construct_dcnn(args.model_name)
