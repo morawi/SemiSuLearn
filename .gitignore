@@ -1,3 +1,5 @@
+.idea
+*__
 # ignore folders used for storing the results
 results/ 
 all_results/
