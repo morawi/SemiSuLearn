@@ -56,7 +56,7 @@ temporal_pert_skip = 5 # if this is set to low value, it will affect the converg
 
 pre_trained_model = False
 
-lr = 0.1
+lr = 0.01
 weight_decay = 5e-4
 dropout_p = 0.4
 momentum_val= 0.9
