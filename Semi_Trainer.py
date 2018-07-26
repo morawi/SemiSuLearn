@@ -120,20 +120,25 @@ parser.add_argument('--pre-trained-model', type=bool, default= pre_trained_model
 args = parser.parse_args()
 
 args.epoch_skip = epoch_skip # number of epochs to skip before predicting unlabeled examples
-args.semi_sup_iterations = semi_sup_iterations
-args.temporal_pert_skip = temporal_pert_skip
+args.semi_sup_iterations = semi_sup_iterations 
+
 args.lr_milestones= [50, 90, 250 ]  #[20, 40, 80 ]
 
-args.use_temporal_ensemble = False 
-args.temporal_perturbation_f = 3 # should be prime number
-args.temporal_alpha = 0
+args.use_temporal_ensemble = False;  
+args.temporal_pert_skip = temporal_pert_skip 
+args.temporal_perturbation_f = 3 # should be prime number, when to apply the perturbation
+args.temporal_alpha = 0 
 args.model_name_attention = model_name_attention        
 
-"""  temporal_alpha: this is used to construct the perturbation noise, random gaussian noiose added to the gradient,
-higher values yield higher noise, temporal alpha will decay with epoch advance, thus, higher values 
-may indicate more training time will be needed    
+"""  
+use_temporal_ensemble: True or false, if True, use temporal perturbation 
+    this is only applied for ensemble_posteriori, not applied for softmax_posteriori
+temporal_alpha: this is used to construct the perturbation noise, random gaussian noiose added to the gradient,
+    higher values yield higher noise, temporal alpha will decay with epoch advance, thus, higher values 
+    may indicate more training time will be needed    
 temporal_perturbation_f: The noise is added to the gradient every temporal_perturbation_f, should be prime number
 temporal_pert_skip: The number of epochs to skip before performing temporal perturbation, could be low if one
+temporal_alpha: the intensity of perturbation
 uses a pre-trained model (as the convergence could be fast)
     """
 
@@ -222,15 +227,6 @@ def run_net(train_loader, test_loader, posteriori_method):
 
 """ --------------------------  END of Run Net Routines  -------------------- """
 
-def build_the_ensemble(results):
-    # build ensmble, if not using unlabeled data
-    no_of_classes = len(unlabeled_loader.dataset.classes)
-    no_of_ensembles = args.epochs-args.epoch_skip-1   # this is in fact the no of ensembles used             
-    labels, labels_voting = count_votes(no_of_classes, results['ensemble_labels'], no_of_ensembles)
-    print('diagnostics: no of ensembles...', no_of_ensembles)
-    results['labels_voting']= labels_voting
-    results ['no_of_ensembles'] = no_of_ensembles
-    return results
 
 
 def semi_supervised_train(unlabeled_set, unlabeled_loader):    
@@ -373,7 +369,17 @@ def get_the_loaders():
     unlabeled_loader = DT.DataLoader(unlabeled_set, args.batch_size, sampler=None, shuffle=False, 
                                                    num_workers=2)
     return train_loader, test_loader, unlabeled_loader    
+
                
+def build_the_ensemble(results):
+    # build ensmble, if not using unlabeled data
+    no_of_classes = len(unlabeled_loader.dataset.classes)
+    no_of_ensembles = args.epochs-args.epoch_skip-1   # this is in fact the no of ensembles used             
+    labels, labels_voting = count_votes(no_of_classes, results['ensemble_labels'], no_of_ensembles)
+    print('diagnostics: no of ensembles...', no_of_ensembles)
+    results['labels_voting']= labels_voting
+    results ['no_of_ensembles'] = no_of_ensembles
+    return results
 
 
 def add_new_rand_labels(input_set):
